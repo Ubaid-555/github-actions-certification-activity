@@ -98,7 +98,7 @@ jobs:
             | python -c 'import json,sys; print("Authenticated API repository:", json.load(sys.stdin)["full_name"])'
       - name: Invoke the published custom action on demand
         if: ${{ github.event_name == 'workflow_dispatch' && inputs.run_custom_action }}
-        uses: Ubaid-555/devops-greeting-action@v1
+        uses: Ubaid-555/student-greeting-action@v1
         with:
           name: ${{ inputs.name }}
           greeting: ${{ inputs.greeting }}
