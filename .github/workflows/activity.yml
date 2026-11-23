@@ -1,0 +1,115 @@
+name: Activity - events, contexts, and actions
+
+on:
+  push:
+    branches: [main, dev]
+  pull_request:
+    branches: [main, dev]
+  schedule:
+    - cron: '*/5 * * * *'
+  workflow_dispatch:
+    inputs:
+      name:
+        description: Name used by the greeting
+        required: true
+        type: string
+        default: Ubaidullah
+      greeting:
+        description: Greeting text
+        required: true
+        type: string
+        default: Hello
+      data:
+        description: Sample data passed through the workflow
+        required: false
+        type: string
+        default: Manual workflow run
+      run_self_hosted:
+        description: Run the separate job on your registered self-hosted Windows runner
+        required: true
+        type: boolean
+        default: false
+      run_custom_action:
+        description: Invoke the published custom JavaScript action
+        required: true
+        type: boolean
+        default: false
+  repository_dispatch:
+    types: [custom-webhook]
+
+permissions:
+  contents: read
+
+jobs:
+  inspect:
+    name: Inspect event and contexts
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out activity files
+        uses: actions/checkout@v4
+      - name: Print safe context values
+        env:
+          ACTOR: ${{ github.actor }}
+          EVENT_NAME: ${{ github.event_name }}
+          RUNNER_OS: ${{ runner.os }}
+          LAB_NOTE: ${{ vars.LAB_NOTE || 'Repository variable LAB_NOTE is not set' }}
+          MANUAL_NAME: ${{ inputs.name || '' }}
+          GREETING: ${{ inputs.greeting || github.event.client_payload.greeting || 'Hello' }}
+          SAMPLE_DATA: ${{ inputs.data || github.event.client_payload.data || 'No payload supplied' }}
+        run: |
+          echo "github.actor=$ACTOR"
+          echo "github.event_name=$EVENT_NAME"
+          echo "runner.os=$RUNNER_OS"
+          echo "vars.LAB_NOTE=$LAB_NOTE"
+          echo "env.EVENT_NAME=$EVENT_NAME"
+          echo "name=$MANUAL_NAME"
+          echo "greeting=$GREETING"
+          echo "data=$SAMPLE_DATA"
+      - name: Demonstrate contains expression
+        if: ${{ contains(fromJSON('["push","pull_request","schedule","workflow_dispatch","repository_dispatch"]'), github.event_name) }}
+        run: echo "The current event is one of the activity events."
+      - name: Demonstrate success expression
+        if: ${{ success() }}
+        run: echo "All earlier steps succeeded."
+      - name: Demonstrate failure expression
+        if: ${{ failure() }}
+        run: echo "This diagnostic runs only after an earlier step fails."
+      - name: Demonstrate always expression
+        if: ${{ always() }}
+        run: echo "The final diagnostic step runs regardless of earlier step status."
+      - name: Check a dummy secret without revealing it
+        env:
+          MY_SECRET: ${{ secrets.MY_SECRET }}
+        run: |
+          if [ -n "$MY_SECRET" ]; then
+            echo "Dummy secret supplied: $MY_SECRET"
+          else
+            echo "MY_SECRET is not configured yet."
+          fi
+      - name: Call repository API with the job token
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REPOSITORY: ${{ github.repository }}
+        run: |
+          curl --fail --silent --show-error \
+            -H "Accept: application/vnd.github+json" \
+            -H "Authorization: Bearer $GH_TOKEN" \
+            "https://api.github.com/repos/$REPOSITORY" \
+            | python -c 'import json,sys; print("Authenticated API repository:", json.load(sys.stdin)["full_name"])'
+      - name: Invoke the published custom action on demand
+        if: ${{ github.event_name == 'workflow_dispatch' && inputs.run_custom_action }}
+        uses: Ubaid-555/devops-greeting-action@v1
+        with:
+          name: ${{ inputs.name }}
+          greeting: ${{ inputs.greeting }}
+  self_hosted_demo:
+    name: Optional self-hosted runner demo
+    if: ${{ github.event_name == 'workflow_dispatch' && inputs.run_self_hosted }}
+    runs-on: [self-hosted, Windows, X64, devops-lab]
+    steps:
+      - name: Confirm runner labels and OS
+        shell: pwsh
+        run: |
+          Write-Output "Runner: $env:RUNNER_NAME"
+          Write-Output "OS: $env:RUNNER_OS"
+          Write-Output "Custom label: devops-lab"

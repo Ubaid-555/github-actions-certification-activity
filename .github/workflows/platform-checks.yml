@@ -1,0 +1,31 @@
+name: Windows and macOS runner checks
+
+on:
+  push:
+    branches: [main, dev]
+  pull_request:
+    branches: [main, dev]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  windows:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Confirm Windows PowerShell and Chocolatey
+        shell: pwsh
+        run: |
+          $PSVersionTable.PSVersion.ToString()
+          choco --version
+          Write-Output "Windows runner: $env:RUNNER_OS"
+  macos:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Confirm Swift compiler
+        run: |
+          swift --version
+          swift hello.swift

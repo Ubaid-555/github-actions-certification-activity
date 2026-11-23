@@ -1,0 +1,36 @@
+name: PostgreSQL service container check
+
+on:
+  push:
+    branches: [main, dev]
+  pull_request:
+    branches: [main, dev]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  integration:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: labuser
+          POSTGRES_PASSWORD: lab-password-for-ephemeral-container
+          POSTGRES_DB: labdb
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U labuser -d labdb"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    steps:
+      - name: Confirm container and query the database
+        env:
+          POSTGRES_CONTAINER: ${{ job.services.postgres.id }}
+        run: |
+          echo "PostgreSQL service container: $POSTGRES_CONTAINER"
+          docker exec "$POSTGRES_CONTAINER" psql -U labuser -d labdb -c 'SELECT current_database(), current_user, version();'
