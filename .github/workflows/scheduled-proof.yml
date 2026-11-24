@@ -1,0 +1,14 @@
+name: Scheduled proof
+
+on:
+  schedule:
+    - cron: '7,17,27,37,47,57 * * * *'
+
+jobs:
+  scheduled-proof:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Confirm scheduled trigger
+        run: |
+          echo "Scheduled workflow ran at $(date -u)"
+          echo "Event: $GITHUB_EVENT_NAME"
