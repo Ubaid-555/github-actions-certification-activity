@@ -108,7 +108,11 @@ jobs:
     runs-on: [self-hosted, Windows, X64, devops-lab]
     steps:
       - name: Confirm runner labels and OS
-        shell: powershell
+                shell: cmd
+        run: |
+          echo Runner: %RUNNER_NAME%
+          echo OS: %RUNNER_OS%
+          echo Custom label: devops-lab
         run: |
           Write-Output "Runner: $env:RUNNER_NAME"
           Write-Output "OS: $env:RUNNER_OS"
